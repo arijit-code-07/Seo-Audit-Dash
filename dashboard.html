@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Audit Dashboard</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 16px;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { color: rgba(255,255,255,0.8); font-size: 1.1rem; }
+
+        /* URL Input */
+        .audit-form {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+        }
+        .input-group {
+            display: flex;
+            gap: 12px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .input-group input:focus { border-color: var(--primary); }
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: var(--primary-dark); transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* Score Circle */
+        .score-section {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .score-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .score-circle {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        .score-circle svg { transform: rotate(-90deg); }
+        .score-circle .score-text {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: 800;
+        }
+        .score-label { font-size: 1.1rem; color: var(--text-muted); }
+
+        /* Quick Stats */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .stat-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        .stat-card .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .stat-card .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .stat-card.success { border-left: 4px solid var(--success); }
+        .stat-card.warning { border-left: 4px solid var(--warning); }
+        .stat-card.danger { border-left: 4px solid var(--danger); }
+        .stat-card.info { border-left: 4px solid var(--info); }
+
+        /* Sections */
+        .section {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-header h2 { font-size: 1.3rem; }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-success { background: rgba(34,197,94,0.2); color: var(--success); }
+        .badge-warning { background: rgba(245,158,11,0.2); color: var(--warning); }
+        .badge-danger { background: rgba(239,68,68,0.2); color: var(--danger); }
+        .badge-info { background: rgba(59,130,246,0.2); color: var(--info); }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .data-table th {
+            text-align: left;
+            padding: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+        }
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .data-table tr:hover { background: rgba(255,255,255,0.02); }
+
+        /* Progress bars */
+        .progress-bar {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Lists */
+        .detail-list { list-style: none; }
+        .detail-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+        }
+        .detail-list li:last-child { border-bottom: none; }
+        .detail-list .label { color: var(--text-muted); }
+
+        /* Image grid */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .image-card {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border);
+        }
+        .image-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .image-card .img-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Schema cards */
+        .schema-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .schema-card {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+        .schema-card h4 { margin-bottom: 10px; }
+        .schema-card pre {
+            background: var(--card);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .score-section { grid-template-columns: 1fr; }
+            .input-group { flex-direction: column; }
+            .header h1 { font-size: 1.8rem; }
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .loading.active { display: block; }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Hidden by default */
+        .results { display: none; }
+        .results.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SEO Audit Tool</h1>
+            <p>Comprehensive webpage analysis for SEO optimization</p>
+        </div>
+
+        <div class="audit-form">
+            <div class="input-group">
+                <input type="url" id="urlInput" placeholder="https://example.com" value="">
+                <button class="btn" id="auditBtn" onclick="runAudit()">Run Audit</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing webpage... This may take a moment</p>
+        </div>
+
+        <div class="results" id="results">
+            <!-- Score Section -->
+            <div class="score-section">
+                <div class="score-card">
+                    <div class="score-circle">
+                        <svg width="180" height="180" viewBox="0 0 180 180">
+                            <circle cx="90" cy="90" r="80" fill="none" stroke="var(--border)" stroke-width="12"/>
+                            <circle id="scoreCircle" cx="90" cy="90" r="80" fill="none" stroke="var(--success)" 
+                                    stroke-width="12" stroke-dasharray="502" stroke-dashoffset="0" 
+                                    stroke-linecap="round"/>
+                        </svg>
+                        <div class="score-text" id="scoreText">0</div>
+                    </div>
+                    <div class="score-label">SEO Score</div>
+                </div>
+
+                <div class="quick-stats" id="quickStats">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Title & Meta -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Title & Meta Description</h2>
+                    <span class="badge" id="titleBadge">-</span>
+                </div>
+                <ul class="detail-list">
+                    <li>
+                        <span class="label">Page Title</span>
+                        <span id="pageTitle">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Title Characters</span>
+                        <span id="titleChars">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Title Pixel Width</span>
+                        <span id="titlePixels">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Meta Description</span>
+                        <span id="metaDesc">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Description Characters</span>
+                        <span id="descChars">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Description Pixel Width</span>
+                        <span id="descPixels">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Canonical URL</span>
+                        <span id="canonical">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Robots Meta</span>
+                        <span id="robotsMeta">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Viewport</span>
+                        <span id="viewport">-</span>
+                    </li>
+                    <li>
+                        <span class="label">Language</span>
+                        <span id="lang">-</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Index Status -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Index Status</h2>
+                    <span class="badge" id="indexBadge">-</span>
+                </div>
+                <ul class="detail-list" id="indexDetails">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+
+            <!-- Broken Links -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>3xx Redirects</h2>
+                    <span class="badge badge-warning" id="redirectCount">0</span>
+                </div>
+                <table class="data-table" id="redirectTable">
+                    <thead>
+                        <tr><th>URL</th><th>Link Text</th><th>Status</th><th>Type</th><th>Follow</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h2>4xx Broken Links</h2>
+                    <span class="badge badge-danger" id="brokenCount">0</span>
+                </div>
+                <table class="data-table" id="brokenTable">
+                    <thead>
+                        <tr><th>URL</th><th>Link Text</th><th>Status</th><th>Type</th><th>Follow</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Phone Numbers</h2>
+                    <span class="badge badge-info" id="phoneCount">0</span>
+                </div>
+                <table class="data-table" id="phoneTable">
+                    <thead>
+                        <tr><th>Number</th><th>Visible</th><th>Tel Link</th><th>Clickable</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h2>Email Addresses</h2>
+                    <span class="badge badge-info" id="emailCount">0</span>
+                </div>
+                <table class="data-table" id="emailTable">
+                    <thead>
+                        <tr><th>Email</th><th>Visible</th><th>Mailto Link</th><th>Obfuscated</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Contact Form</h2>
+                    <span class="badge" id="formBadge">-</span>
+                </div>
+                <p id="formStatus">-</p>
+            </div>
+
+            <!-- Images -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Image Analysis</h2>
+                    <span class="badge badge-warning" id="imageCount">0</span>
+                </div>
+                <div class="image-grid" id="imageGrid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>FAQ Section</h2>
+                    <span class="badge" id="faqBadge">-</span>
+                </div>
+                <ul class="detail-list" id="faqDetails">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+
+            <!-- Schema -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Schema Markup</h2>
+                    <span class="badge badge-info" id="schemaCount">0</span>
+                </div>
+                <div class="schema-grid" id="schemaGrid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Headings -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Heading Structure</h2>
+                </div>
+                <div id="headingsContent">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Demo data for preview
+        const demoData = {
+            "url": "https://example.com",
+            "audit_date": "2024-01-15T10:30:00",
+            "score": 78,
+            "title": {
+                "text": "Example Domain - This is a sample page title for SEO audit testing",
+                "char_count": 64,
+                "pixel_width": 520,
+                "status": "optimal"
+            },
+            "meta_description": {
+                "text": "This is a sample meta description that demonstrates the SEO audit tool capabilities. It should be between 120-160 characters for optimal display.",
+                "char_count": 148,
+                "pixel_width": 850,
+                "status": "optimal"
+            },
+            "redirects_3xx": [
+                {"url": "https://example.com/old-page", "text": "Old Link", "status_code": 301, "is_follow": true, "link_type": "internal"},
+                {"url": "https://example.com/redirected", "text": "Redirected", "status_code": 302, "is_follow": false, "link_type": "external"}
+            ],
+            "broken_4xx": [
+                {"url": "https://example.com/broken", "text": "Broken Link", "status_code": 404, "is_follow": true, "link_type": "internal"}
+            ],
+            "phones": [
+                {"number": "+1 (555) 123-4567", "is_visible": true, "has_tel_link": true, "tel_link": "tel:+15551234567", "is_clickable": true},
+                {"number": "1-800-555-0199", "is_visible": true, "has_tel_link": false, "tel_link": null, "is_clickable": false}
+            ],
+            "emails": [
+                {"address": "contact@example.com", "is_visible": true, "has_mailto_link": true, "mailto_link": "mailto:contact@example.com", "is_obfuscated": false},
+                {"address": "sales@example.com", "is_visible": true, "has_mailto_link": false, "mailto_link": null, "is_obfuscated": false}
+            ],
+            "has_contact_form": true,
+            "contact_form_details": {"detected": true},
+            "images": [
+                {"src": "https://via.placeholder.com/300x200", "alt": "Sample product image showing features", "has_alt": true, "alt_quality": "good", "img_type": "jpg", "has_lazy_loading": true, "width": 300, "height": 200},
+                {"src": "https://via.placeholder.com/300x200/333", "alt": "", "has_alt": false, "alt_quality": "missing", "img_type": "png", "has_lazy_loading": false, "width": 300, "height": 200},
+                {"src": "https://via.placeholder.com/300x200/666", "alt": "buy cheap discount", "has_alt": true, "alt_quality": "keyword_stuffed", "img_type": "webp", "has_lazy_loading": true, "width": 300, "height": 200}
+            ],
+            "index_status": {
+                "is_indexable": true,
+                "robots_meta": null,
+                "x_robots_tag": "",
+                "canonical": "https://example.com",
+                "note": "Use 'site:https://example.com' in Google for live index check"
+            },
+            "has_faq": true,
+            "faq_details": {
+                "has_schema": true,
+                "has_visual_section": true
+            },
+            "schemas": [
+                {"type": "Organization", "has_rich_snippet": false, "rich_snippet_type": null},
+                {"type": "FAQPage", "has_rich_snippet": false, "rich_snippet_type": null},
+                {"type": "Product", "has_rich_snippet": true, "rich_snippet_type": "Product (with Reviews)"}
+            ],
+            "headings": {
+                "h1": ["Welcome to Example Domain"],
+                "h2": ["Our Services", "About Us", "Contact Information"],
+                "h3": ["Web Design", "SEO Optimization", "Support"],
+                "h4": [],
+                "h5": [],
+                "h6": []
+            },
+            "canonical": "https://example.com",
+            "robots_meta": null,
+            "viewport": "width=device-width, initial-scale=1.0",
+            "lang": "en",
+            "word_count": 1250,
+            "internal_links": 24,
+            "external_links": 8,
+            "page_load_time_ms": 1250
+        };
+
+        function getStatusColor(status) {
+            if (status === 'optimal' || status === true) return 'var(--success)';
+            if (status === 'too_long' || status === 'too_short' || status === 'missing') return 'var(--danger)';
+            if (status === 'warning') return 'var(--warning)';
+            return 'var(--text-muted)';
+        }
+
+        function getBadgeClass(status) {
+            if (status === 'optimal' || status === true) return 'badge-success';
+            if (['too_long', 'too_short', 'missing', false].includes(status)) return 'badge-danger';
+            return 'badge-warning';
+        }
+
+        function renderResults(data) {
+            // Score
+            const score = data.score;
+            const circumference = 2 * Math.PI * 80;
+            const offset = circumference - (score / 100) * circumference;
+            const scoreColor = score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--warning)' : 'var(--danger)';
+
+            document.getElementById('scoreText').textContent = score;
+            document.getElementById('scoreText').style.color = scoreColor;
+            document.getElementById('scoreCircle').style.strokeDashoffset = offset;
+            document.getElementById('scoreCircle').style.stroke = scoreColor;
+
+            // Quick Stats
+            const statsHtml = `
+                <div class="stat-card success">
+                    <div class="stat-value">${data.word_count}</div>
+                    <div class="stat-label">Word Count</div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-value">${data.internal_links}</div>
+                    <div class="stat-label">Internal Links</div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-value">${data.external_links}</div>
+                    <div class="stat-label">External Links</div>
+                </div>
+                <div class="stat-card ${data.page_load_time_ms < 2000 ? 'success' : 'warning'}">
+                    <div class="stat-value">${(data.page_load_time_ms / 1000).toFixed(1)}s</div>
+                    <div class="stat-label">Load Time</div>
+                </div>
+                <div class="stat-card ${data.images.filter(i => !i.has_alt).length === 0 ? 'success' : 'warning'}">
+                    <div class="stat-value">${data.images.filter(i => !i.has_alt).length}</div>
+                    <div class="stat-label">Missing Alt</div>
+                </div>
+                <div class="stat-card ${data.broken_4xx.length === 0 ? 'success' : 'danger'}">
+                    <div class="stat-value">${data.broken_4xx.length}</div>
+                    <div class="stat-label">Broken Links</div>
+                </div>
+            `;
+            document.getElementById('quickStats').innerHTML = statsHtml;
+
+            // Title & Meta
+            document.getElementById('pageTitle').textContent = data.title.text || 'Not found';
+            document.getElementById('titleChars').textContent = `${data.title.char_count} chars`;
+            document.getElementById('titlePixels').textContent = `${data.title.pixel_width}px`;
+            document.getElementById('metaDesc').textContent = data.meta_description.text || 'Not found';
+            document.getElementById('descChars').textContent = `${data.meta_description.char_count} chars`;
+            document.getElementById('descPixels').textContent = `${data.meta_description.pixel_width}px`;
+            document.getElementById('canonical').textContent = data.canonical || 'Not set';
+            document.getElementById('robotsMeta').textContent = data.robots_meta || 'Not set';
+            document.getElementById('viewport').textContent = data.viewport || 'Not set';
+            document.getElementById('lang').textContent = data.lang || 'Not set';
+
+            const titleBadge = document.getElementById('titleBadge');
+            titleBadge.textContent = data.title.status;
+            titleBadge.className = `badge ${getBadgeClass(data.title.status)}`;
+
+            // Index Status
+            const indexBadge = document.getElementById('indexBadge');
+            indexBadge.textContent = data.index_status.is_indexable ? 'Indexable' : 'Noindex';
+            indexBadge.className = `badge ${data.index_status.is_indexable ? 'badge-success' : 'badge-danger'}`;
+
+            document.getElementById('indexDetails').innerHTML = `
+                <li><span class="label">Indexable</span><span>${data.index_status.is_indexable ? 'Yes' : 'No'}</span></li>
+                <li><span class="label">Robots Meta</span><span>${data.index_status.robots_meta || 'Not set'}</span></li>
+                <li><span class="label">X-Robots-Tag</span><span>${data.index_status.x_robots_tag || 'Not set'}</span></li>
+                <li><span class="label">Canonical</span><span>${data.index_status.canonical || 'Not set'}</span></li>
+                <li><span class="label">Note</span><span>${data.index_status.note}</span></li>
+            `;
+
+            // Redirects
+            document.getElementById('redirectCount').textContent = data.redirects_3xx.length;
+            const redirectBody = data.redirects_3xx.map(r => `
+                <tr>
+                    <td><a href="${r.url}" target="_blank" style="color:var(--primary)">${r.url.substring(0, 60)}...</a></td>
+                    <td>${r.text}</td>
+                    <td><span class="badge badge-warning">${r.status_code}</span></td>
+                    <td>${r.link_type}</td>
+                    <td><span class="badge ${r.is_follow ? 'badge-success' : 'badge-danger'}">${r.is_follow ? 'Follow' : 'Nofollow'}</span></td>
+                </tr>
+            `).join('');
+            document.querySelector('#redirectTable tbody').innerHTML = redirectBody || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">No redirects found</td></tr>';
+
+            // Broken
+            document.getElementById('brokenCount').textContent = data.broken_4xx.length;
+            const brokenBody = data.broken_4xx.map(r => `
+                <tr>
+                    <td><a href="${r.url}" target="_blank" style="color:var(--danger)">${r.url.substring(0, 60)}...</a></td>
+                    <td>${r.text}</td>
+                    <td><span class="badge badge-danger">${r.status_code}</span></td>
+                    <td>${r.link_type}</td>
+                    <td><span class="badge ${r.is_follow ? 'badge-success' : 'badge-danger'}">${r.is_follow ? 'Follow' : 'Nofollow'}</span></td>
+                </tr>
+            `).join('');
+            document.querySelector('#brokenTable tbody').innerHTML = brokenBody || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">No broken links found</td></tr>';
+
+            // Phones
+            document.getElementById('phoneCount').textContent = data.phones.length;
+            const phoneBody = data.phones.map(p => `
+                <tr>
+                    <td>${p.number}</td>
+                    <td><span class="badge ${p.is_visible ? 'badge-success' : 'badge-danger'}">${p.is_visible ? 'Yes' : 'No'}</span></td>
+                    <td><span class="badge ${p.has_tel_link ? 'badge-success' : 'badge-danger'}">${p.has_tel_link ? 'Yes' : 'No'}</span></td>
+                    <td><span class="badge ${p.is_clickable ? 'badge-success' : 'badge-warning'}">${p.is_clickable ? 'Yes' : 'No'}</span></td>
+                </tr>
+            `).join('');
+            document.querySelector('#phoneTable tbody').innerHTML = phoneBody || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">No phone numbers found</td></tr>';
+
+            // Emails
+            document.getElementById('emailCount').textContent = data.emails.length;
+            const emailBody = data.emails.map(e => `
+                <tr>
+                    <td>${e.address}</td>
+                    <td><span class="badge ${e.is_visible ? 'badge-success' : 'badge-danger'}">${e.is_visible ? 'Yes' : 'No'}</span></td>
+                    <td><span class="badge ${e.has_mailto_link ? 'badge-success' : 'badge-danger'}">${e.has_mailto_link ? 'Yes' : 'No'}</span></td>
+                    <td><span class="badge ${e.is_obfuscated ? 'badge-success' : 'badge-warning'}">${e.is_obfuscated ? 'Yes' : 'No'}</span></td>
+                </tr>
+            `).join('');
+            document.querySelector('#emailTable tbody').innerHTML = emailBody || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">No emails found</td></tr>';
+
+            // Contact Form
+            const formBadge = document.getElementById('formBadge');
+            formBadge.textContent = data.has_contact_form ? 'Found' : 'Not Found';
+            formBadge.className = `badge ${data.has_contact_form ? 'badge-success' : 'badge-warning'}`;
+            document.getElementById('formStatus').textContent = data.has_contact_form 
+                ? 'Contact form detected on this page.' 
+                : 'No contact form detected. Consider adding one for better lead generation.';
+
+            // Images
+            document.getElementById('imageCount').textContent = data.images.length;
+            document.getElementById('imageGrid').innerHTML = data.images.map(img => `
+                <div class="image-card">
+                    <img src="${img.src}" alt="${img.alt}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+                    <div class="img-meta">
+                        <strong>Alt:</strong> ${img.alt || '<span style="color:var(--danger)">Missing</span>'}<br>
+                        <strong>Quality:</strong> <span class="badge ${getBadgeClass(img.alt_quality === 'good' || img.alt_quality === 'empty' && img.has_alt ? 'optimal' : img.alt_quality)}">${img.alt_quality}</span><br>
+                        <strong>Type:</strong> ${img.img_type.toUpperCase()}<br>
+                        <strong>Lazy:</strong> ${img.has_lazy_loading ? 'Yes' : 'No'}<br>
+                        <strong>Size:</strong> ${img.width || '?'} x ${img.height || '?'}
+                    </div>
+                </div>
+            `).join('');
+
+            // FAQ
+            const faqBadge = document.getElementById('faqBadge');
+            faqBadge.textContent = data.has_faq ? 'Found' : 'Not Found';
+            faqBadge.className = `badge ${data.has_faq ? 'badge-success' : 'badge-warning'}`;
+            document.getElementById('faqDetails').innerHTML = `
+                <li><span class="label">FAQ Section</span><span>${data.has_faq ? 'Yes' : 'No'}</span></li>
+                <li><span class="label">Schema Markup</span><span>${data.faq_details.has_schema ? 'Yes' : 'No'}</span></li>
+                <li><span class="label">Visual Section</span><span>${data.faq_details.has_visual_section ? 'Yes' : 'No'}</span></li>
+            `;
+
+            // Schema
+            document.getElementById('schemaCount').textContent = data.schemas.length;
+            document.getElementById('schemaGrid').innerHTML = data.schemas.map(s => `
+                <div class="schema-card">
+                    <h4>${s.type}</h4>
+                    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:10px;">
+                        Rich Snippet: <span class="badge ${s.has_rich_snippet ? 'badge-success' : 'badge-warning'}">${s.has_rich_snippet ? 'Yes' : 'No'}</span>
+                        ${s.rich_snippet_type ? `<br>Type: ${s.rich_snippet_type}` : ''}
+                    </p>
+                    <pre>${JSON.stringify(s.raw_json, null, 2).substring(0, 500)}...</pre>
+                </div>
+            `).join('') || '<p style="color:var(--text-muted)">No schema markup found</p>';
+
+            // Headings
+            let headingsHtml = '';
+            for (let i = 1; i <= 6; i++) {
+                const hKey = 'h' + i;
+                const headings = data.headings[hKey];
+                if (headings && headings.length > 0) {
+                    headingsHtml += `<div style="margin-bottom:15px;"><strong style="color:var(--primary)">${hKey.toUpperCase()}</strong> (${headings.length})<ul style="margin-left:20px;margin-top:5px;">`;
+                    headings.forEach(h => {
+                        headingsHtml += `<li style="color:var(--text-muted);font-size:0.9rem;">${h}</li>`;
+                    });
+                    headingsHtml += '</ul></div>';
+                }
+            }
+            document.getElementById('headingsContent').innerHTML = headingsHtml || '<p style="color:var(--text-muted)">No headings found</p>';
+        }
+
+        function runAudit() {
+            const url = document.getElementById('urlInput').value;
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('results').classList.remove('active');
+            document.getElementById('auditBtn').disabled = true;
+
+            // In a real implementation, this would call the Python backend
+            // For demo, we show the demo data after a delay
+            setTimeout(() => {
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('results').classList.add('active');
+                document.getElementById('auditBtn').disabled = false;
+                renderResults(demoData);
+            }, 2000);
+        }
+
+        // Load demo on page load for preview
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('results').classList.add('active');
+            renderResults(demoData);
+        });
+    </script>
+</body>
+</html>
